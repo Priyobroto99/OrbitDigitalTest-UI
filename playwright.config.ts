@@ -9,6 +9,8 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
  */
 export default defineConfig({
   testDir: './tests',
+  /* Warm one storageState per configured role before the suites run. */
+  globalSetup: require.resolve('./global-setup'),
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -17,8 +19,20 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  /* Reporter to use. See https://playwright.dev/docs/test-reporters
+   * On CI we additionally emit:
+   *  - 'github'  → inline annotations on the workflow run / PR
+   *  - 'junit'   → results.xml consumed by the test-results check in Actions
+   *  - 'list'    → readable console output in the job log
+   */
+  reporter: process.env.CI
+    ? [
+        ['list'],
+        ['github'],
+        ['junit', { outputFile: 'results.xml' }],
+        ['html', { open: 'never' }],
+      ]
+    : 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('')`. */

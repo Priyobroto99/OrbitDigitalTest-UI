@@ -1,0 +1,18 @@
+# Post-Deployment Sanity Tests
+
+This document outlines the test suite defined in [sanity.spec.ts](file:///d:/Coding%20Workspace/VS%20Code%20workspace/PythonFirst/OrbitDigitalTest-UI/tests/sanity.spec.ts) for validating system health post-deployment.
+
+| ID | Test Name / Area | Description / What it Validates |
+| :--- | :--- | :--- |
+| **S1** | Users & Products backend services healthy | Verifies the core API health status of the `users` and `products` services by hitting their respective health endpoints (`/api/users/health` and `/api/products/health`) and expecting a `200` status with `{"status": "healthy"}`. |
+| **S2** | App Orbit Digital is live and running | Verifies that the SPA website is up and running by loading the homepage (`/`) and confirming that the main **Orbit Digital** brand logo is visible on the page. |
+| **S3** | Admin can log in and remain stable | Validates the primary authentication path for administrators: logs in using credentials, confirms redirection away from `/login`, checks for a visible `"Logout"` button, ensures the protected `/admin` console is reachable, and waits for 10 seconds to confirm no race conditions or instable behavior. |
+| **S4** | Studio dashboard loads and remains stable | Checks that a logged-in `STUDIO` user can access the `/studio` dashboard, all four core tabs (`Analytics`, `Lab Orders`, `Customer Orders`, `AI Studio`) render, and waits for 10 seconds to confirm no race conditions or instable behavior. |
+| **S5** | Dealer can log in and remain stable | Validates the primary authentication path for dealers: logs in using credentials, confirms redirection away from `/login`, checks for a visible `"Logout"` button, ensures the protected `/dealer` portal is reachable, and waits for 10 seconds to confirm no race conditions or instable behavior. |
+| **S6** | Unauthenticated routes are guarded | Verifies route protection: attempts to load `/studio`, `/admin`, and `/dealer` without an active session, confirming the user is redirected to `/login` for all of them. |
+| **S7** | Admin console tabs load and remain stable | Checks that an authenticated `ADMIN` can open the admin console, clicks through all 8 console tabs (`Overview`, `Orders`, `Place orders`, `Dealers & Studios`, `Pricing Table`, `Invoices`, `CMS Portal`, `AI Gallery`) and validates static elements (e.g. section headings) instead of dynamic cards to confirm each tab loads successfully, followed by a 10-second wait to confirm stability. |
+| **S8** | Customer Orders tab loads (no service error) | Verifies gateway routing: ensures a `STUDIO` user can view the `"Customer Orders"` tab without triggering an `"Error connecting to service"` toast notification. |
+| **S9** | Create customer order | Validates the end-to-end customer ordering flow: fills out the customer order form, submits it, verifies the order is listed under `"Awaiting Payment"`, and verifies that the new order persists after reloading the page. |
+| **S10** | Invoices tab loads | Verifies that an authenticated `ADMIN` can access the `"Invoices"` tab in the admin panel and that all three sub-sections (`Confirmed Orders`, `Paid Orders`, `Invoiced Orders`) are visible. |
+| **S11** | Admin gallery loads | Verifies that an authenticated `ADMIN` can open the `"AI Gallery"` tab and that either the existing events list (with password reveal controls) or the event creation buttons are visible. |
+| **S12** | Event unlock (guest) | Validates public gallery sharing: checks that an unauthenticated guest can access an event url, enter the correct password, and successfully unlock the gallery view. |

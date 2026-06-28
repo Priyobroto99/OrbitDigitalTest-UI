@@ -1,15 +1,30 @@
 name: Playwright Tests
+
 on:
   push:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
+    inputs:
+      suite:
+        description: 'Which suite to run'
+        type: choice
+        default: sanity
+        options:
+          - sanity
+          - regression
+          - all
 
 jobs:
   test:
     timeout-minutes: 60
     runs-on: ubuntu-latest
+    # dorny/test-reporter needs checks:write to publish the results check.
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-node@v4
@@ -19,11 +34,51 @@ jobs:
       run: npm ci
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
-    - name: Run Playwright tests
+
+    # Resolve the suite → Playwright --grep argument.
+    # Manual runs honour the dropdown; push / PR default to the sanity gate.
+    - name: Resolve suite filter
+      id: suite
+      run: |
+        SUITE="${{ github.event.inputs.suite }}"
+        SUITE="${SUITE:-sanity}"
+        case "$SUITE" in
+          sanity)     GREP='--grep @sanity' ;;
+          regression) GREP='--grep @regression' ;;
+          all)        GREP='' ;;
+        esac
+        echo "name=$SUITE" >> "$GITHUB_OUTPUT"
+        echo "grep=$GREP" >> "$GITHUB_OUTPUT"
+        echo "Running suite: $SUITE (filter: ${GREP:-<none>})"
+
+    - name: Run Playwright tests (${{ steps.suite.outputs.name }})
       env:
+        CI: 'true'
         ADMIN_USERNAME: ${{ secrets.ADMIN_USERNAME }}
         ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-      run: npx playwright test
+        STUDIO_USERNAME: ${{ secrets.STUDIO_USERNAME }}
+        STUDIO_PASSWORD: ${{ secrets.STUDIO_PASSWORD }}
+        DEALER_USERNAME: ${{ secrets.DEALER_USERNAME }}
+        DEALER_PASSWORD: ${{ secrets.DEALER_PASSWORD }}
+        STUDIO_PARTNER_USERNAME: ${{ secrets.STUDIO_PARTNER_USERNAME }}
+        DEALER_PARTNER_USERNAME: ${{ secrets.DEALER_PARTNER_USERNAME }}
+        GALLERY_EVENT_ID: ${{ secrets.GALLERY_EVENT_ID }}
+        GALLERY_EVENT_CODE: ${{ secrets.GALLERY_EVENT_CODE }}
+        GALLERY_EVENT_NAME: ${{ secrets.GALLERY_EVENT_NAME }}
+        GALLERY_EVENT_PASSWORD: ${{ secrets.GALLERY_EVENT_PASSWORD }}
+        GALLERY_EVENT_ID_B: ${{ secrets.GALLERY_EVENT_ID_B }}
+      run: npx playwright test ${{ steps.suite.outputs.grep }}
+
+    # Publish a pass/fail check with a per-test breakdown in the Actions UI.
+    - name: Publish test results
+      uses: dorny/test-reporter@v1
+      if: ${{ !cancelled() }}
+      with:
+        name: Playwright results (${{ steps.suite.outputs.name }})
+        path: results.xml
+        reporter: java-junit
+
+    # Full HTML report (traces, screenshots) downloadable from the run.
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
