@@ -32,6 +32,10 @@ jobs:
       pull-requests: write
     steps:
     - uses: actions/checkout@v4
+    # Inside the Playwright container the workspace is owned by a different user
+    # than git expects; mark it safe so later git-based steps don't hit exit 128.
+    - name: Mark workspace as git safe directory
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     - uses: actions/setup-node@v4
       with:
         node-version: lts/*
